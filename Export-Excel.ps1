@@ -123,6 +123,3 @@ Function Export-Excel{
     $x = [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel)
     Remove-Variable excel
 }
-
-#$col = Import-Csv ..\Collection.csv
-#Export-Excel $col
