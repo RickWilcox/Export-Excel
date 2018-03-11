@@ -33,6 +33,7 @@ Function Export-Excel{
         [Parameter(Mandatory = $False)]$WorkbookObject,
         [Parameter(Mandatory = $False)][String]$WorkbookPath,
         [Parameter(Mandatory = $False)][Int32]$MaxColumnWidth = 50
+        
         #[Parameter(Mandatory = $False)][Switch][Boolean]$Save = $False
     )
     
@@ -46,7 +47,9 @@ Function Export-Excel{
         Try{
             $WorkbookObject = $excel.Workbooks.Open($WorkbookPath)
         }
-        Catch{}
+        Catch{
+
+        }
     }
     
     # If no path and no object is passed to the function then create a workbook
