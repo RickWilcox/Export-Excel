@@ -36,14 +36,7 @@ Function Export-Excel {
         [String]$SheetName,
 
         [Parameter(Mandatory = $False)]
-        [Int32]$MaxColumnWidth = 50,
-        
-        [Parameter(Mandatory = $False, ParameterSetName = 'Create Chart')]
-        [Switch]$Chart,
-        
-        [Parameter(Mandatory = $False, ParameterSetName = 'Create Chart')]
-        [String]$xAxisTitle
-        # [Parameter(Mandatory = $False)][Switch][Boolean]$Save = $False
+        [Int32]$MaxColumnWidth = 50
     )
     Begin {
         Try {
@@ -52,28 +45,28 @@ Function Export-Excel {
             $excel = New-Object -ComObject excel.application 
             $excel.visible = $True    
             Try {
-                $WorkbookObject = $Excel.Workbooks.Open($WorkbookPath)
+                $workBook = $Excel.Workbooks.Open($WorkbookPath)
             }
             Catch {
                 Write-Debug "Unable to open existing workbook, it likely does not exist."
             }
-            If (!$WorkbookObject) {
+            If (!$workBook) {
                 $newWorkbook = $True
-                $WorkbookObject = $excel.Workbooks.Add() 
-                $workSheet = $WorkbookObject.Worksheets.item(1)
+                $workBook = $excel.Workbooks.Add() 
+                $workSheet = $workBook.Worksheets.item(1)
                 if ($SheetName) {
                     $workSheet.name = $SheetName
                 }
             }
             #-------- Add worksheet and format cells as text --------
             if (!$newWorkBook) {
-                $WorkSheet = $WorkbookObject.Worksheets | Where-Object {$_.name -like $sheetName}
+                $WorkSheet = $workBook.Worksheets | Where-Object {$_.name -like $sheetName}
                 if ($workSheet) {
                     $Excel.DisplayAlerts = $False
                     $workSheet.delete()
                     $Excel.DisplayAlerts = $True
                 }
-                $workSheet = $WorkbookObject.Worksheets.add()
+                $workSheet = $workBook.Worksheets.add()
                 $workSheet.name = $SheetName
             }
             #------- Set the worksheet cells format -------
@@ -82,7 +75,7 @@ Function Export-Excel {
             $range.clear
         }
         Catch{
-            If(!$WorkbookObject){
+            If(!$workBook){
                 Write-Host "Unable to create Excel workbook object" -ForegroundColor Red
                 Break
             }
@@ -116,24 +109,20 @@ Function Export-Excel {
         ForEach($column in $workSheet.UsedRange.EntireColumn){
             If($column.ColumnWidth -gt $MaxColumnWidth){$column.ColumnWidth = $MaxColumnWidth}
         }
-        If ($chart) {
-        }
     }
     end {
-        If($WorkbookPath){
-            $Excel.DisplayAlerts = $False
-            If($newWorkbook){
-                $WorkbookObject.SaveAs($WorkbookPath)
-            }Else{
-                $WorkbookObject.Save()
-            }
-            $Excel.DisplayAlerts = $True
+        $Excel.DisplayAlerts = $False
+        If($newWorkbook){
+            $workBook.SaveAs($WorkbookPath)
+        }Else{
+            $workBook.Save()
         }
+        $Excel.DisplayAlerts = $True
         $excel.visible = $True
         # Cleanup
         $x = [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel)
         Remove-Variable excel
     }    
 }
-export-excel -PSOTable $PSOTable -WorkbookPath c:\temp\test.xlsx -SheetName "Family"
+
     
