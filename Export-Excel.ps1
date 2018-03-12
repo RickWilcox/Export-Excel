@@ -41,7 +41,7 @@ Function Export-Excel {
         [Parameter(Mandatory = $False, ParameterSetName = 'Create Chart')]
         [Switch]$Chart,
         
-        [Parameter(Mandatory = $True, ParameterSetName = 'Create Chart')]
+        [Parameter(Mandatory = $False, ParameterSetName = 'Create Chart')]
         [String]$xAxisTitle
         # [Parameter(Mandatory = $False)][Switch][Boolean]$Save = $False
     )
@@ -50,31 +50,31 @@ Function Export-Excel {
             #------- Initialize Excel COM object and workbook --------
             Add-Type -AssemblyName Microsoft.Office.Interop.Excel
             $excel = New-Object -ComObject excel.application 
-            $excel.visible = $False    
+            $excel.visible = $True    
             Try {
                 $WorkbookObject = $Excel.Workbooks.Open($WorkbookPath)
             }
             Catch {
                 Write-Debug "Unable to open existing workbook, it likely does not exist."
             }
-            If(!$WorkbookObject){
+            If (!$WorkbookObject) {
                 $newWorkbook = $True
                 $WorkbookObject = $excel.Workbooks.Add() 
-                $workbookObject.Worksheets.Item(2).Delete()
-                $workbookObject.Worksheets.Item(3).Delete()
-            }
-            #-------- Add worksheet and format cells as text --------
-            if ($newWorkbook) {
                 $workSheet = $WorkbookObject.Worksheets.item(1)
                 if ($SheetName) {
                     $workSheet.name = $SheetName
                 }
             }
-            Else {
+            #-------- Add worksheet and format cells as text --------
+            if (!$newWorkBook) {
                 $WorkSheet = $WorkbookObject.Worksheets | Where-Object {$_.name -like $sheetName}
-                if (!$workSheet) {
-                    $workSheet = $WorkbookObject.Worksheets.add($sheetName)
+                if ($workSheet) {
+                    $Excel.DisplayAlerts = $False
+                    $workSheet.delete()
+                    $Excel.DisplayAlerts = $True
                 }
+                $workSheet = $WorkbookObject.Worksheets.add()
+                $workSheet.name = $SheetName
             }
             #------- Set the worksheet cells format -------
             $workSheet.Cells.NumberFormat = "@"
@@ -92,23 +92,18 @@ Function Export-Excel {
     }
     Process {
         #------- Set headers --------
-        $headers = $PSOTable | Get-Member | Where-Object{$_.MemberType -eq "NoteProperty"}
-        $headers | ForEach-Object{$workSheet.Cells.Item(1,($headers.indexof($_)) + 1) = $_.Name} 
+        $headers = $PSOTable[0].PSObject.Properties.Name
+        $headers | ForEach-Object {
+            $workSheet.Cells.Item(1,($headers.indexof($_)) + 1) = $_
+        } 
         #-------- Format Worksheet Table ---------
         $ListObject = $workSheet.ListObjects.Add([Microsoft.Office.Interop.Excel.XlListObjectSourceType]::xlSrcRange, $WorkSheet.UsedRange, $null ,[Microsoft.Office.Interop.Excel.XlYesNoGuess]::xlYes)
         $listObject.Name = "Table1"
         $listObject.TableStyle = "TableStyleLight17"
         #--------- write collection to worksheet -------
         $PSOTable | ForEach-Object{
-            ForEach($header in $headers){$workSheet.Cells.Item(($PSOTable.indexof($_)) + 2,($headers.indexof($header)) + 1) = ($_."$($header.name)") -join "`n"}
+            ForEach($header in $headers){$workSheet.Cells.Item(($PSOTable.indexof($_)) + 2,($headers.indexof($header)) + 1) = ($_."$($header)") -join "`n"}
         } 
-        If($WorkbookPath){
-            If($newWorkbook){
-                $WorkbookObject.SaveAs($WorkbookPath)
-            }Else{
-                $WorkbookObject.Save()
-            }
-        }
         $usedRange = $worksheet.UsedRange
         $usedRange.Cells.Font.Size = 9
         $usedrange.WrapText = $True
@@ -121,14 +116,24 @@ Function Export-Excel {
         ForEach($column in $workSheet.UsedRange.EntireColumn){
             If($column.ColumnWidth -gt $MaxColumnWidth){$column.ColumnWidth = $MaxColumnWidth}
         }
+        If ($chart) {
+        }
     }
+    end {
+        If($WorkbookPath){
+            $Excel.DisplayAlerts = $False
+            If($newWorkbook){
+                $WorkbookObject.SaveAs($WorkbookPath)
+            }Else{
+                $WorkbookObject.Save()
+            }
+            $Excel.DisplayAlerts = $True
+        }
+        $excel.visible = $True
+        # Cleanup
+        $x = [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel)
+        Remove-Variable excel
+    }    
 }
-end {
-    $excel.visible = $True
-    # Cleanup
-    $x = [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel)
-    Remove-Variable excel
-    If ($chart) {
-    }
-}    
+export-excel -PSOTable $PSOTable -WorkbookPath c:\temp\test.xlsx -SheetName "Family"
     
