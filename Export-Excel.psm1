@@ -29,11 +29,14 @@ Function Export-Excel {
         [Parameter(Mandatory = $True, ValueFromPipeLine = $True)]
         [PSObject]$PSOTable,
 
+
         [Parameter(Mandatory = $True)]
         [String]$WorkbookPath,
 
+
         [Parameter(Mandatory = $False)]
         [String]$SheetName,
+
 
         [Parameter(Mandatory = $False)]
         [Int32]$MaxColumnWidth = 50
@@ -63,11 +66,15 @@ Function Export-Excel {
                 $WorkSheet = $workBook.Worksheets | Where-Object {$_.name -like $sheetName}
                 if ($workSheet) {
                     $Excel.DisplayAlerts = $False
+                    $workSheetTemp = $workBook.Worksheets.add()
                     $workSheet.delete()
                     $Excel.DisplayAlerts = $True
                 }
                 $workSheet = $workBook.Worksheets.add()
                 $workSheet.name = $SheetName
+                if ($workSheetTemp) {
+                    $workSheetTemp.delete()
+                }
             }
             #------- Set the worksheet cells format -------
             $workSheet.Cells.NumberFormat = "@"
@@ -114,12 +121,15 @@ Function Export-Excel {
         $Excel.DisplayAlerts = $False
         If($newWorkbook){
             $workBook.SaveAs($WorkbookPath)
+            $workbook.close()
         }Else{
             $workBook.Save()
+            $workbook.close()
         }
-        $Excel.Workbooks.Close()
-        $Excel.Quit()    
+        $excel.Workbooks.close()
         $Excel.DisplayAlerts = $True
+        $Excel.Quit()    
+        
         #$excel.visible = $True
         # Cleanup
         $x = [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel)
@@ -127,4 +137,3 @@ Function Export-Excel {
     }    
 }
 
-    
