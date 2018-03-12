@@ -43,7 +43,7 @@ Function Export-Excel {
             #------- Initialize Excel COM object and workbook --------
             Add-Type -AssemblyName Microsoft.Office.Interop.Excel
             $excel = New-Object -ComObject excel.application 
-            $excel.visible = $True    
+            #$excel.visible = $True    
             Try {
                 $workBook = $Excel.Workbooks.Open($WorkbookPath)
             }
@@ -117,8 +117,10 @@ Function Export-Excel {
         }Else{
             $workBook.Save()
         }
+        $Excel.Workbooks.Close()
+        $Excel.Quit()    
         $Excel.DisplayAlerts = $True
-        $excel.visible = $True
+        #$excel.visible = $True
         # Cleanup
         $x = [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel)
         Remove-Variable excel
